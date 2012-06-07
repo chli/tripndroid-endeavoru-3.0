@@ -27,6 +27,8 @@
 
 #include "power.h"
 
+extern int resume_from_deep_suspend;
+
 const char *const pm_states[PM_SUSPEND_MAX] = {
 #ifdef CONFIG_EARLYSUSPEND
 	[PM_SUSPEND_ON]		= "on",
@@ -182,14 +184,27 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	arch_suspend_enable_irqs();
 	BUG_ON(irqs_disabled());
 
- Enable_cpus:
-	enable_nonboot_cpus();
-
- Platform_wake:
+#ifdef CONFIG_POWER_KEY_WAKEUP_FAILED_PATCH
+Platform_wake:
 	if (suspend_ops->wake)
 		suspend_ops->wake();
 
 	dpm_resume_noirq(PMSG_RESUME);
+
+Enable_cpus:
+	   enable_nonboot_cpus();
+#else
+	printk("POWER_KEY_WAKEUP_FAILED_PATCH  is not defined \n");
+
+Enable_cpus:
+	   enable_nonboot_cpus();
+
+Platform_wake:
+	if (suspend_ops->wake)
+		suspend_ops->wake();
+
+	dpm_resume_noirq(PMSG_RESUME);
+#endif
 
  Platform_finish:
 	if (suspend_ops->finish)
@@ -284,6 +299,7 @@ int enter_state(suspend_state_t state)
 	if (!mutex_trylock(&pm_mutex))
 		return -EBUSY;
 
+	resume_from_deep_suspend = 0;
 	printk(KERN_INFO "PM: Syncing filesystems ... ");
 	sys_sync();
 	printk("done.\n");

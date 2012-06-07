@@ -65,6 +65,12 @@ config HTC_ONMODE_CHARGING
 	help
 	 support on mode charging icon
 
+config POWER_KEY_WAKEUP_FAILED_PATCH
+	bool "POWER_KEY_WAKEUP_FAILED_PATCH"
+	default y
+	help
+	 Power key wakeup failure patch by HTC
+
 choice
 	prompt "User-space screen access"
 	default FB_EARLYSUSPEND if !FRAMEBUFFER_CONSOLE
