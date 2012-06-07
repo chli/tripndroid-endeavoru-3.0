@@ -59,6 +59,12 @@ config EARLYSUSPEND
 	  Call early suspend handlers when the user requested sleep state
 	  changes.
 
+config HTC_ONMODE_CHARGING
+	bool "On Mode Charging Icon Support"
+	default n
+	help
+	 support on mode charging icon
+
 choice
 	prompt "User-space screen access"
 	default FB_EARLYSUSPEND if !FRAMEBUFFER_CONSOLE
