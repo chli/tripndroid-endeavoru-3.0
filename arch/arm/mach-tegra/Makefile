@@ -3,7 +3,6 @@ GCOV_PROFILE := y
 obj-y                                   += ahb.o
 obj-y                                   += apbio.o
 obj-y                                   += common.o
-obj-y                                   += board-info.o
 obj-$(CONFIG_ARCH_TEGRA_2x_SOC)         += common-t2.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += common-t3.o
 obj-y                                   += io.o
@@ -13,6 +12,8 @@ obj-y                                   += clock.o
 obj-y                                   += clock-common.o
 obj-y                                   += timer.o
 obj-y                                   += timerinfo.o
+obj-y                                   += htc_audio_power.o
+obj-y                                   += power.o
 ifeq ($(CONFIG_ARCH_TEGRA_2x_SOC),y)
 obj-y                                   += tegra2_clocks.o
 obj-y                                   += timer-t2.o
@@ -49,13 +50,14 @@ obj-y                                   += dvfs.o
 obj-$(CONFIG_ARCH_TEGRA_2x_SOC)         += tegra2_dvfs.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += tegra3_dvfs.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += latency_allowance.o
+
 obj-$(CONFIG_TEGRA_EDP_LIMITS)          += edp.o
-endif
-ifeq ($(CONFIG_TEGRA_SILICON_PLATFORM),y)
+
 obj-$(CONFIG_ARCH_TEGRA_2x_SOC)         += tegra2_speedo.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += tegra3_speedo.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += tegra3_actmon.o
 endif
+
 obj-$(CONFIG_ARCH_TEGRA_2x_SOC)         += tegra2_emc.o
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += tegra3_emc.o
 obj-$(CONFIG_ARCH_TEGRA_2x_SOC)         += wakeups-t2.o
@@ -101,6 +103,7 @@ obj-$(CONFIG_SENSORS_TEGRA_TSENSOR)     += tegra3_tsensor.o
 obj-$(CONFIG_TEGRA_DYNAMIC_PWRDET)      += powerdetect.o
 obj-$(CONFIG_TEGRA_USB_MODEM_POWER)     += tegra_usb_modem_power.o
 obj-$(CONFIG_TEGRA_PCI)                 += pcie.o
+
 obj-${CONFIG_MACH_HARMONY}              += board-harmony.o
 obj-${CONFIG_MACH_HARMONY}              += board-harmony-kbc.o
 obj-${CONFIG_MACH_HARMONY}              += board-harmony-panel.o
@@ -159,9 +162,6 @@ obj-${CONFIG_MACH_CARDHU}               += board-cardhu-sensors.o
 obj-${CONFIG_MACH_CARDHU}               += board-cardhu-memory.o
 obj-${CONFIG_MACH_CARDHU}               += board-cardhu-powermon.o
 
-obj-${CONFIG_MACH_KAI}                  += board-touch-kai-synaptics-spi.o
-obj-y                                   += board-touch-raydium_spi.o
-
 obj-${CONFIG_MACH_P1852}               += board-p1852.o
 obj-${CONFIG_MACH_P1852}               += board-p1852-panel.o
 obj-${CONFIG_MACH_P1852}               += board-p1852-pinmux.o
@@ -185,8 +185,40 @@ obj-${CONFIG_MACH_KAI}                  += board-kai-pinmux.o
 obj-${CONFIG_MACH_KAI}                  += board-kai-power.o
 obj-${CONFIG_MACH_KAI}                  += board-kai-sdhci.o
 obj-${CONFIG_MACH_KAI}                  += board-kai-sensors.o
-obj-y                                   += eeprom-wifi-mac.o
+obj-${CONFIG_MACH_KAI}                  += board-touch-kai-synaptics-spi.o
 
-obj-${CONFIG_TEGRA_BB_XMM_POWER}        += baseband-xmm-power.o
-obj-${CONFIG_TEGRA_BB_XMM_POWER2}       += baseband-xmm-power2.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += board-endeavoru.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += board-endeavoru-panel.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += board-endeavoru-pinmux.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += board-endeavoru-sdhci.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += board-endeavoru-memory.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += board-endeavoru-power.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += board-endeavoru-baseband.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += board-endeavoru-kbc.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += board-endeavoru-sensors.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += tegra_flashlight.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += devices_htc.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += htc-gpio.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += board-endeavoru-audio.o
+obj-${CONFIG_MACH_ENDEAVORU}                 += htc_wifi_nvs.o
+
+ifeq (${CONFIG_MACH_ENDEAVORU},y)
+obj-y += baseband-xmm-power.o
+obj-m += baseband-xmm-power2.o
+obj-y += htc_simhotswap.o
+endif
+
+obj-$(CONFIG_MICROP_COMMON)		+= atmega_microp_common.o
+
+ifeq (${CONFIG_MACH_ENDEAVORU},y)
+obj-${CONFIG_HTC_BATT_CORE}             += htc_battery_core.o
+obj-$(CONFIG_BATTERY_TPS80032)          += htc_battery_tps80032.o
+endif
+
+obj-$(CONFIG_HTC_HEADSET_MGR) 		+= htc_headset_mgr.o
+obj-$(CONFIG_HTC_HEADSET_GPIO) 		+= htc_headset_gpio.o
+obj-$(CONFIG_HTC_HEADSET_PMIC) 		+= htc_headset_pmic.o
+
+# Add ramdump from NV patches
+obj-y                                   += nvdumper.o
 

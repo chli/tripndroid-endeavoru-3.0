@@ -175,6 +175,17 @@ config MACH_KAI
        help
          Support for NVIDIA KAI development platform
 
+config MACH_ENDEAVORU
+	bool "Edge board"
+	default n
+	depends on ARCH_TEGRA_3x_SOC
+	help
+	  Support for HTC EndeavorU phone
+
+config BATTERY_TPS80032
+	depends on HTC_BATT_CORE && ADC_TPS80032 && VSYS_ALARM_TPS80032
+	bool "HTC battery driver for tps80032"
+
 choice
        prompt "Tegra platform type"
        default TEGRA_SILICON_PLATFORM
@@ -254,7 +265,7 @@ config TEGRA_CARDHU_DSI
 	depends on MACH_CARDHU
 	select TEGRA_DSI
 	help
-		Support for DSI Panel on Nvidia Cardhu
+	  Support for DSI Panel on Nvidia Cardhu
 
 config TEGRA_EMC_SCALING_ENABLE
 	bool "Enable scaling the memory frequency"
@@ -448,6 +459,48 @@ config TEGRA_THERMAL_SYSFS
 	bool "Enable Thermal driver to use Thermal Sysfs infrastructure"
 	depends on THERMAL
 	default y
+
+config MICROP_COMMON
+    	bool "MICROP COMMON Driver"
+   	depends on I2C
+    	help
+      	  HTC Microp-P support.
+
+config HTC_HEADSET_MGR
+	tristate "HTC headset manager driver"
+	default n
+	help
+	  Provides support of HTC headset manager.
+
+config HTC_HEADSET_GPIO
+	tristate "HTC GPIO headset detection driver"
+	depends on HTC_HEADSET_MGR
+	default n
+	help
+	  Provides support of HTC GPIO headset detection.
+
+config HTC_HEADSET_PMIC
+	tristate "HTC PMIC headset detection driver"
+	depends on HTC_HEADSET_MGR
+	default n
+	help
+	  Provides support of HTC PMIC headset detection.
+
+config HTC_USB_NOTIFIER
+	tristate "HTC usb notifier register"
+	default n
+	help
+	  If usb status are change, a usb notifier will callback to 
+	  registered function.
+
+config HTC_BATT_CORE
+	depends on POWER_SUPPLY
+	bool "HTC battery core driver"
+
+config RESET_REASON
+	bool "Enable reset reason for EndeavorU to fix reboot bootloader"
+    	depends on MACH_ENDEAVORU
+    	default n
 
 config TEGRA_PLLM_RESTRICTED
 	bool "Restrict PLLM usage as module clock source"
