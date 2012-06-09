@@ -35,6 +35,23 @@
 #endif
 #include "sdhci-pltfm.h"
 
+//HTC_START
+#if defined(CONFIG_MACH_ENDEAVORU)
+#include <mach/iomap.h>
+
+struct platform_device *mmci_get_platform_device(void);
+struct mmc_host *mmci_get_mmc(void);
+typedef struct wlan_sdioDrv{
+	struct platform_device *pdev;
+	struct mmc_host *mmc;
+	int (*wlan_sdioDrv_pm_resume)(void);
+	int (*wlan_sdioDrv_pm_suspend)(void);
+
+} wlan_sdioDrv_t;
+wlan_sdioDrv_t g_wlan_sdioDrv;
+#endif
+//HTC_END
+
 static struct sdhci_ops sdhci_pltfm_ops = {
 };
 
@@ -235,6 +252,20 @@ int sdhci_pltfm_resume(struct platform_device *dev)
 }
 EXPORT_SYMBOL_GPL(sdhci_pltfm_resume);
 #endif	/* CONFIG_PM */
+
+//HTC_START
+#if defined(CONFIG_MACH_ENDEAVORU)
+struct platform_device *mmci_get_platform_device(void){
+	return g_wlan_sdioDrv.pdev;
+}
+EXPORT_SYMBOL(mmci_get_platform_device);
+
+struct mmc_host *mmci_get_mmc(void){
+	return g_wlan_sdioDrv.mmc;
+}
+EXPORT_SYMBOL(mmci_get_mmc);
+#endif
+//HTC_END
 
 static int __init sdhci_pltfm_drv_init(void)
 {
