@@ -31,7 +31,6 @@
 #include <linux/nct1008.h>
 #include <linux/delay.h>
 #include <linux/regulator/consumer.h>
-#include <linux/gpio.h>
 
 #define DRIVER_NAME "nct1008"
 
@@ -81,16 +80,6 @@
 #define CELSIUS_TO_MILLICELSIUS(x) ((x)*1000)
 #define MILLICELSIUS_TO_CELSIUS(x) ((x)/1000)
 
-#define TEGRA_GPIO_PCC2		226
-#define	hysteresis_throttle	5
-static struct nct1008_data *pwr_data;
-static int nct1008_ready = 0;
-static int polling = 1;
-
-struct nct1008_data *get_pwr_data(void)
-{
-		return pwr_data;
-}
 
 static int conv_period_ms_table[] =
 	{16000, 8000, 4000, 2000, 1000, 500, 250, 125, 63, 32, 16};
@@ -114,7 +103,7 @@ static int nct1008_get_temp(struct device *dev, long *pTemp)
 	s8 temp_ext_hi;
 	long temp_ext_milli;
 	long temp_local_milli;
-	int value;
+	u8 value;
 
 	/* Read Local Temp */
 	value = i2c_smbus_read_byte_data(client, LOCAL_TEMP_RD);
@@ -290,9 +279,8 @@ static ssize_t nct1008_show_temp_alert(struct device *dev,
 
 	return snprintf(buf, MAX_STR_PRINT, "lo:%d hi:%d\n", temp_lo, temp_hi);
 error:
-	dev_err(dev, "%s: failed to read temperature-overheat "
-		"\n", __func__);
-	return snprintf(buf, MAX_STR_PRINT, " Rd overheat Error\n");
+	dev_err(dev, "%s: failed to read temperature-alert\n", __func__);
+	return snprintf(buf, MAX_STR_PRINT, " Rd alert Error\n");
 }
 
 static ssize_t nct1008_set_temp_alert(struct device *dev,
@@ -484,8 +472,6 @@ static int nct1008_enable(struct i2c_client *client)
 	struct nct1008_data *data = i2c_get_clientdata(client);
 	int err;
 
-	printk(KERN_INFO "[TMS] nct1008_enable");
-
 	err = i2c_smbus_write_byte_data(client, CONFIG_WR,
 				  data->config & ~STANDBY_BIT);
 	if (err < 0)
@@ -498,8 +484,6 @@ static int nct1008_disable(struct i2c_client *client)
 {
 	struct nct1008_data *data = i2c_get_clientdata(client);
 	int err;
-
-	printk(KERN_INFO "[TMS] nct1008_disable");
 
 	err = i2c_smbus_write_byte_data(client, CONFIG_WR,
 				  data->config | STANDBY_BIT);
@@ -515,7 +499,6 @@ static int nct1008_within_limits(struct nct1008_data *data)
 
 	intr_status = i2c_smbus_read_byte_data(data->client, STATUS_RD);
 
-
 	return !(intr_status & (BIT(3) | BIT(4)));
 }
 
@@ -525,8 +508,6 @@ static void nct1008_work_func(struct work_struct *work)
 						work);
 	int intr_status;
 	struct timespec ts;
-
-	printk(KERN_INFO "[TMS] nct1008_work_func start");
 
 	nct1008_disable(data->client);
 
@@ -545,143 +526,7 @@ static void nct1008_work_func(struct work_struct *work)
 
 	nct1008_enable(data->client);
 
-	printk(KERN_INFO "[TMS] nct1008_work_func end, status = %d ", intr_status);
-
 	enable_irq(data->client->irq);
-}
-
-static void nct1008_polling_func(struct work_struct *work)
-{
-	struct nct1008_data *data = container_of(work, struct nct1008_data,
-						polling_work);
-	struct nct1008_platform_data *pdata = data->client->dev.platform_data;
-	u8 temp_ext_lo;
-	s8 temp_ext_hi;
-	s8 temp_local;
-	int value;
-	int gpio_pcc2;
-
-	if (!polling)
-		return;
-
-	/* Read External Temp */
-	value = i2c_smbus_read_byte_data(data->client, EXT_TEMP_RD_LO);
-	if (value < 0)
-		goto error;
-	temp_ext_lo = (value >> 6);
-
-	value = i2c_smbus_read_byte_data(data->client, EXT_TEMP_RD_HI);
-	if (value < 0)
-		goto error;
-	temp_ext_hi = value_to_temperature(pdata->ext_range, value);
-
-	/* Read Local Temp */
-	value = i2c_smbus_read_byte_data(data->client, LOCAL_TEMP_RD);
-	if (value < 0)
-		goto error;
-	temp_local = value_to_temperature(pdata->ext_range, value);
-
-	/* Get GPIO_PCC2 */
-	gpio_pcc2 = gpio_get_value(TEGRA_GPIO_PCC2);
-
-	printk(KERN_INFO "[TMS] cpu temp = %d.%d, local temp = %d, gpio = %d ", temp_ext_hi, temp_ext_lo * 25,
-								temp_local, gpio_pcc2);
-
-	if (temp_ext_hi >= 85)
-		schedule_delayed_work(&data->polling_work, msecs_to_jiffies(1000));
-	else if (temp_ext_hi >= 80)
-		schedule_delayed_work(&data->polling_work, msecs_to_jiffies(3000));
-	else if (temp_ext_hi >= 70)
-		schedule_delayed_work(&data->polling_work, msecs_to_jiffies(5000));
-	else
-		schedule_delayed_work(&data->polling_work, msecs_to_jiffies(10000));
-	return;
-error:
-	schedule_delayed_work(&data->polling_work, msecs_to_jiffies(500));
-}
-
-static void nct1008_read_temp_func(struct work_struct *work)
-{
-	struct nct1008_data *data = container_of(work, struct nct1008_data,
-						read_temp_work);
-	struct nct1008_platform_data *pdata = data->client->dev.platform_data;
-	u8 temp_ext_lo;
-	s8 temp_ext_hi;
-	s8 temp_local;
-	s8 temp, temp2;
-	int value;
-	int config;
-	int intr_status;
-	int gpio_pcc2;
-
-	/* Read External Temp */
-	value = i2c_smbus_read_byte_data(data->client, EXT_TEMP_RD_LO);
-	if (value < 0)
-		goto error;
-	temp_ext_lo = (value >> 6);
-
-	value = i2c_smbus_read_byte_data(data->client, EXT_TEMP_RD_HI);
-	if (value < 0)
-		goto error;
-	temp_ext_hi = value_to_temperature(pdata->ext_range, value);
-
-	/* Read Local Temp */
-	value = i2c_smbus_read_byte_data(data->client, LOCAL_TEMP_RD);
-	if (value < 0)
-		goto error;
-	temp_local = value_to_temperature(pdata->ext_range, value);
-
-	/* Local temperature h/w shutdown limit */
-	value = i2c_smbus_read_byte_data(data->client, LOCAL_THERM_LIMIT_WR);
-	if (value < 0)
-		goto error;
-	temp = value_to_temperature(pdata->ext_range, value);
-
-	/* External temperature h/w shutdown limit */
-	value = i2c_smbus_read_byte_data(data->client, EXT_THERM_LIMIT_WR);
-	if (value < 0)
-		goto error;
-	temp2 = value_to_temperature(pdata->ext_range, value);
-
-	printk(KERN_INFO "[PWR][TMS] cpu temp = %d.%d, local temp = %d,cpu shutdown temp = %d,"
-		"local shutdown temp = %d", temp_ext_hi, temp_ext_lo * 25, temp_local, temp2, temp);
-
-	/* Read config */
-	config = i2c_smbus_read_byte_data(data->client, CONFIG_RD);
-	if (value < 0)
-		goto error;
-
-	/* Read Status */
-	intr_status = i2c_smbus_read_byte_data(data->client, STATUS_RD);
-	if (value < 0)
-		goto error;
-
-	/* Get GPIO_PCC2 */
-	gpio_pcc2 = gpio_get_value(TEGRA_GPIO_PCC2);
-
-	printk(KERN_INFO "[PWR][TMS] config = %d, status = %d ,gpio= %d ", config, intr_status, gpio_pcc2);
-
-	schedule_delayed_work(&data->read_temp_work, msecs_to_jiffies(1000));
-
-	return;
-error:
-	schedule_delayed_work(&data->read_temp_work, msecs_to_jiffies(500));
-}
-
-void nct1008_read_temp_for_key(int read_temp)
-{
-	struct nct1008_data *data = pwr_data;
-
-	if (nct1008_ready) {
-		if (read_temp) {
-			printk(KERN_INFO "[PWR][TMS] start read temperature ");
-			schedule_delayed_work(&data->read_temp_work, 0);
-		}
-		else {
-			printk(KERN_INFO "[PWR][TMS] stop read temperature ");
-			cancel_delayed_work(&data->read_temp_work);
-		}
-	}
 }
 
 static irqreturn_t nct1008_irq(int irq, void *dev_id)
@@ -689,7 +534,6 @@ static irqreturn_t nct1008_irq(int irq, void *dev_id)
 	struct nct1008_data *data = dev_id;
 
 	disable_irq_nosync(irq);
-	printk(KERN_INFO "[TMS] receive irq ");
 	queue_work(data->workqueue, &data->work);
 
 	return IRQ_HANDLED;
@@ -699,8 +543,7 @@ static void nct1008_power_control(struct nct1008_data *data, bool is_enable)
 {
 	int ret;
 	if (!data->nct_reg) {
-		//data->nct_reg = regulator_get(&data->client->dev, "vdd");
-		data->nct_reg = regulator_get(NULL, data->plat_data.reg_name);
+		data->nct_reg = regulator_get(&data->client->dev, "vdd");
 		if (IS_ERR_OR_NULL(data->nct_reg)) {
 			dev_warn(&data->client->dev, "Error [%d] in"
 				"getting the regulator handle for vdd "
@@ -728,20 +571,13 @@ static int __devinit nct1008_configure_sensor(struct nct1008_data* data)
 {
 	struct i2c_client *client = data->client;
 	struct nct1008_platform_data *pdata = client->dev.platform_data;
-	int value;
+	u8 value;
 	s8 temp;
 	u8 temp2;
 	int err;
-	int config;
 
 	if (!pdata || !pdata->supported_hwrev)
 		return -ENODEV;
-
-	/* Read config */
-	value = i2c_smbus_read_byte_data(data->client, CONFIG_RD);
-	if (value < 0)
-		printk(KERN_INFO "[TMS] read config fail");
-	config = value & 4;
 
 	/* Place in Standby */
 	data->config = STANDBY_BIT;
@@ -804,11 +640,8 @@ static int __devinit nct1008_configure_sensor(struct nct1008_data* data)
 		err = value;
 		goto error;
 	}
-	//temp = value_to_temperature(pdata->ext_range, value);
-	temp = value_to_temperature(config, value);
+	temp = value_to_temperature(pdata->ext_range, value);
 	dev_dbg(&client->dev, "\n initial local temp = %d ", temp);
-
-	printk(KERN_INFO "[TMS] local temp = %d ", temp);
 
 	value = i2c_smbus_read_byte_data(client, EXT_TEMP_RD_LO);
 	if (value < 0) {
@@ -821,19 +654,13 @@ static int __devinit nct1008_configure_sensor(struct nct1008_data* data)
 		err = value;
 		goto error;
 	}
-	//temp = value_to_temperature(pdata->ext_range, value);
-	temp = value_to_temperature(config, value);
+	temp = value_to_temperature(pdata->ext_range, value);
 
-	if (temp2 > 0) {
+	if (temp2 > 0)
 		dev_dbg(&client->dev, "\n initial ext temp = %d.%d deg",
 				temp, temp2 * 25);
-		printk(KERN_INFO "[TMS] remote temp = %d.%d ",
-				temp, temp2 * 25);
-	}
-	else {
+	else
 		dev_dbg(&client->dev, "\n initial ext temp = %d.0 deg", temp);
-		printk(KERN_INFO "[TMS] remote temp = %d.0 ", temp);
-	}
 
 	/* Remote channel offset */
 	err = i2c_smbus_write_byte_data(client, OFFSET_WR, pdata->offset / 4);
@@ -845,13 +672,6 @@ static int __devinit nct1008_configure_sensor(struct nct1008_data* data)
 					(pdata->offset % 4) << 6);
 	if (err < 0)
 		goto error;
-
-	/* Therm hysteresis */
-	err = i2c_smbus_write_byte_data(client, THERM_HYSTERESIS_WR,
-					hysteresis_throttle);
-	if (err < 0)
-		goto error;
-
 
 	/* register sysfs hooks */
 	err = sysfs_create_group(&client->dev.kobj, &nct1008_attr_group);
@@ -887,7 +707,7 @@ int nct1008_thermal_get_temp(struct nct1008_data *data, long *temp)
 
 int nct1008_thermal_get_temp_low(struct nct1008_data *data, long *temp)
 {
-	*temp = CELSIUS_TO_MILLICELSIUS(NCT1008_MIN_TEMP);
+	*temp = 0;
 	return 0;
 }
 
@@ -900,25 +720,6 @@ int nct1008_thermal_set_limits(struct nct1008_data *data,
 	bool extended_range = data->plat_data.ext_range;
 	long lo_limit = MILLICELSIUS_TO_CELSIUS(lo_limit_milli);
 	long hi_limit = MILLICELSIUS_TO_CELSIUS(hi_limit_milli);
-	u8 temp_ext_lo;
-	s8 temp_ext_hi;
-	int gpio_pcc2;
-	int t_value;
-
-	/* Read External Temp */
-	t_value = i2c_smbus_read_byte_data(data->client, EXT_TEMP_RD_LO);
-	if (t_value < 0)
-		printk(KERN_INFO "[TMS] read ext_temp_lo fail");
-	temp_ext_lo = (t_value >> 6);
-
-	t_value = i2c_smbus_read_byte_data(data->client, EXT_TEMP_RD_HI);
-	if (t_value < 0)
-		printk(KERN_INFO "[TMS] read ext_temp_hi fail");
-	temp_ext_hi = value_to_temperature(extended_range, t_value);
-
-	/* Get GPIO_PCC2 */
-	gpio_pcc2 = gpio_get_value(TEGRA_GPIO_PCC2);
-	printk(KERN_INFO "[TMS] current_temp=%d.%d, gpio_pcc2=%d", temp_ext_hi, temp_ext_lo * 25, gpio_pcc2);
 
 	if (lo_limit >= hi_limit)
 		return -EINVAL;
@@ -944,8 +745,6 @@ int nct1008_thermal_set_limits(struct nct1008_data *data,
 
 		data->current_hi_limit = hi_limit;
 	}
-
-	printk(KERN_INFO "[TMS] set hi_limit=%ld, lo_limit=%ld", hi_limit, lo_limit);
 
 	return 0;
 }
@@ -1007,6 +806,7 @@ static int __devinit nct1008_probe(struct i2c_client *client,
 {
 	struct nct1008_data *data;
 	int err;
+	unsigned int delay;
 
 	data = kzalloc(sizeof(struct nct1008_data), GFP_KERNEL);
 	if (!data)
@@ -1051,12 +851,6 @@ static int __devinit nct1008_probe(struct i2c_client *client,
 	if (data->plat_data.probe_callback)
 		data->plat_data.probe_callback(data);
 
-	pwr_data = data;
-	INIT_DELAYED_WORK(&data->polling_work, nct1008_polling_func);
-	INIT_DELAYED_WORK(&data->read_temp_work, nct1008_read_temp_func);
-	schedule_delayed_work(&data->polling_work, msecs_to_jiffies(10000));
-	nct1008_ready = 1;
-
 	return 0;
 
 error:
@@ -1072,15 +866,10 @@ static int __devexit nct1008_remove(struct i2c_client *client)
 {
 	struct nct1008_data *data = i2c_get_clientdata(client);
 
-	printk(KERN_INFO "[TMS] nct1008_remove");
-
 	if (data->dent)
 		debugfs_remove(data->dent);
 
 	free_irq(data->client->irq, data);
-
-	printk(KERN_INFO "[TMS] free irq(%d)", client->irq);
-
 	cancel_work_sync(&data->work);
 	sysfs_remove_group(&client->dev.kobj, &nct1008_attr_group);
 	nct1008_power_control(data, false);
@@ -1096,11 +885,7 @@ static int __devexit nct1008_remove(struct i2c_client *client)
 static int nct1008_suspend(struct i2c_client *client, pm_message_t state)
 {
 	int err;
-	struct nct1008_data *data = i2c_get_clientdata(client);
 
-	printk(KERN_INFO "[TMS] disable irq(%d)", client->irq);
-	polling = 0;
-	cancel_delayed_work(&data->polling_work);
 	disable_irq(client->irq);
 	err = nct1008_disable(client);
 	return err;
@@ -1117,14 +902,7 @@ static int nct1008_resume(struct i2c_client *client)
 			__func__, err);
 		return err;
 	}
-
-	printk(KERN_INFO "[TMS] enable irq(%d)", client->irq);
-
 	enable_irq(client->irq);
-	/* shouldn't do here, wait irq trigger it */
-	//queue_work(data->workqueue, &data->work);
-	schedule_delayed_work(&data->polling_work, msecs_to_jiffies(10000));
-	polling = 1;
 
 	return 0;
 }

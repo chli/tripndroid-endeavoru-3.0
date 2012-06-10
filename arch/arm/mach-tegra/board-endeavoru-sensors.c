@@ -289,7 +289,6 @@ static struct nct1008_platform_data enterprise_nct1008_pdata = {
 #ifndef CONFIG_TEGRA_INTERNAL_TSENSOR_EDP_SUPPORT
 	.probe_callback = nct1008_probe_callback,
 #endif
-	.reg_name = "v_usb_3v3",
 };
 
 static struct i2c_board_info enterprise_i2c4_nct1008_board_info[] = {
