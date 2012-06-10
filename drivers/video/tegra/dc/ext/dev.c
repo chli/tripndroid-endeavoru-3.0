@@ -243,9 +243,7 @@ static void tegra_dc_ext_flip_worker(struct work_struct *work)
 	struct tegra_dc_win *wins[DC_N_WINDOWS];
 	struct nvmap_handle_ref *unpin_handles[DC_N_WINDOWS *
 					       TEGRA_DC_NUM_PLANES];
-	struct nvmap_handle_ref *old_handle;
 	int i, nr_unpin = 0, nr_win = 0;
-	bool skip_flip = false;
 
 	for (i = 0; i < DC_N_WINDOWS; i++) {
 		struct tegra_dc_ext_flip_win *flip_win = &data->win[i];
@@ -259,36 +257,25 @@ static void tegra_dc_ext_flip_worker(struct work_struct *work)
 		win = tegra_dc_get_window(ext->dc, index);
 		ext_win = &ext->win[index];
 
-		if (!(atomic_dec_and_test(&ext_win->nr_pending_flips)) &&
-			(flip_win->attr.flags & TEGRA_DC_EXT_FLIP_FLAG_CURSOR))
-			skip_flip = true;
-
 		if (win->flags & TEGRA_WIN_FLAG_ENABLED) {
 			int j;
 			for (j = 0; j < TEGRA_DC_NUM_PLANES; j++) {
-				if (skip_flip)
-					old_handle = flip_win->handle[j];
-				else
-					old_handle = ext_win->cur_handle[j];
-
-				if (!old_handle)
+				if (!ext_win->cur_handle[j])
 					continue;
 
-				unpin_handles[nr_unpin++] = old_handle;
+				unpin_handles[nr_unpin++] =
+					ext_win->cur_handle[j];
 			}
 		}
 
-		if (!skip_flip)
-			tegra_dc_ext_set_windowattr(ext, win, &data->win[i]);
+		tegra_dc_ext_set_windowattr(ext, win, &data->win[i]);
 
 		wins[nr_win++] = win;
 	}
 
-	if (!skip_flip) {
-		tegra_dc_update_windows(wins, nr_win);
-		/* TODO: implement swapinterval here */
-		tegra_dc_sync_windows(wins, nr_win);
-	}
+	tegra_dc_update_windows(wins, nr_win);
+	/* TODO: implement swapinterval here */
+	tegra_dc_sync_windows(wins, nr_win);
 
 	for (i = 0; i < DC_N_WINDOWS; i++) {
 		struct tegra_dc_ext_flip_win *flip_win = &data->win[i];
@@ -303,6 +290,10 @@ static void tegra_dc_ext_flip_worker(struct work_struct *work)
 
 	/* unpin and deref previous front buffers */
 	for (i = 0; i < nr_unpin; i++) {
+#ifdef USE_NVMAP_MAGIC
+		if (*(u32*)unpin_handles[i] != NVMAP_MAGIC)
+			continue;
+#endif
 		nvmap_unpin(ext->nvmap, unpin_handles[i]);
 		nvmap_free(ext->nvmap, unpin_handles[i]);
 	}

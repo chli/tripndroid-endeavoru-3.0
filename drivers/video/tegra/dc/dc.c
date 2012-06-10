@@ -63,6 +63,9 @@
 #define ALL_UF_INT (0)
 #endif
 
+extern int global_wakeup_state;
+extern int resume_from_deep_suspend;
+
 static int no_vsync;
 
 static void _tegra_dc_controller_disable(struct tegra_dc *dc);
@@ -1803,6 +1806,15 @@ int tegra_dc_set_fb_mode(struct tegra_dc *dc,
 }
 EXPORT_SYMBOL(tegra_dc_set_fb_mode);
 
+void tegra_dc_turn_off_pwm(struct tegra_dc *dc)
+{
+	unsigned long out_sel = tegra_dc_readl(dc,  DC_CMD_DISPLAY_POWER_CONTROL);
+	printk(KERN_INFO "[BKL] POWER_CONTROL = 0x%lx\n", out_sel);
+	out_sel &= 0xffbffff;
+	printk(KERN_INFO "[BKL] POWER_CONTROL = 0x%lx\n", out_sel);
+	tegra_dc_writel(dc, out_sel,  DC_CMD_DISPLAY_POWER_CONTROL);
+}
+
 void
 tegra_dc_config_pwm(struct tegra_dc *dc, struct tegra_dc_pwm_params *cfg)
 {
@@ -3019,6 +3031,12 @@ static int tegra_dc_suspend(struct nvhost_device *ndev, pm_message_t state)
 
 	mutex_lock(&dc->lock);
 
+	//assume dc lock to protect power on/off
+	if (ndev->id == 0 &&
+		dc->out &&
+		dc->out->disable)
+		dc->out->disable();
+
 	if (dc->out_ops && dc->out_ops->suspend)
 		dc->out_ops->suspend(dc);
 
@@ -3030,11 +3048,7 @@ static int tegra_dc_suspend(struct nvhost_device *ndev, pm_message_t state)
 
 	if (dc->out && dc->out->postsuspend) {
 		dc->out->postsuspend();
-		if (dc->out->type && dc->out->type == TEGRA_DC_OUT_HDMI)
-			/*
-			 * avoid resume event due to voltage falling
-			 */
-			msleep(100);
+		msleep(100); /* avoid resume event due to voltage falling */
 	}
 
 	mutex_unlock(&dc->lock);
@@ -3049,6 +3063,7 @@ static int tegra_dc_resume(struct nvhost_device *ndev)
 	dev_info(&ndev->dev, "resume\n");
 
 	mutex_lock(&dc->lock);
+
 	dc->suspended = false;
 
 	if (dc->enabled)
@@ -3059,6 +3074,14 @@ static int tegra_dc_resume(struct nvhost_device *ndev)
 
 	if (dc->out_ops && dc->out_ops->resume)
 		dc->out_ops->resume(dc);
+
+	//assume dc lock to portect power on/off
+	if (ndev->id == 0 &&
+		dc->out &&
+		dc->out->bridge_reset &&
+		resume_from_deep_suspend)
+		dc->out->bridge_reset();
+
 	mutex_unlock(&dc->lock);
 
 	return 0;

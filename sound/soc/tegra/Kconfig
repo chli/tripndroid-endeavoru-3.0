@@ -171,6 +171,19 @@ config MACH_HAS_SND_SOC_TEGRA_RT5639
 	  this config option, in order to allow the user to enable
 	  SND_SOC_TEGRA_RT5639.
 
+config SND_SOC_TLV320AIC3008
+	tristate "SoC Audio support for Tegra boards using a TLV320AIC3008 codec"
+	depends on SND_SOC_TEGRA && SPI && TEGRA_DC
+	select SND_SOC_TEGRA20_I2S if ARCH_TEGRA_2x_SOC
+	select SND_SOC_TEGRA30_I2S if ARCH_TEGRA_3x_SOC
+	select SND_SOC_TEGRA30_SPDIF if ARCH_TEGRA_3x_SOC
+	select SND_SOC_SPDIF
+	select SND_SOC_TEGRA30_DAM if ARCH_TEGRA_3x_SOC
+	help
+	  Say Y or M here if you want to add support for SoC audio on Tegra
+	  boards using the TLV320AIC3008 codec. Currently, only supported board is
+	  Enterprise.
+
 config SND_SOC_TEGRA_RT5639
 	tristate "SoC Audio support for Tegra boards using a ALC5639 codec"
 	depends on SND_SOC_TEGRA && I2C && TEGRA_DC

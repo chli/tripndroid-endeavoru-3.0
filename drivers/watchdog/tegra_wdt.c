@@ -42,7 +42,7 @@
 enum tegra_wdt_status {
 	WDT_DISABLED = 1 << 0,
 	WDT_ENABLED = 1 << 1,
-	WDT_IOCTL_ENABBLED_AT_PROBE = 1 << 2,
+	WDT_ENABLED_AT_PROBE = 1 << 2,
 };
 
 struct tegra_wdt {
@@ -127,23 +127,6 @@ static irqreturn_t tegra_wdt_interrupt(int irq, void *dev_id)
  #define WDT_CMD_DISABLE_COUNTER	(1 << 1)
 #define WDT_UNLOCK			(0xC)
  #define WDT_UNLOCK_PATTERN		(0xC45A << 0)
-
-static void tegra_wdt_set_timeout(struct tegra_wdt *wdt, int sec)
-{
-	u32 ptv;
-
-	ptv = readl(wdt->wdt_timer + TIMER_PTV);
-
-	wdt->timeout = clamp(sec, MIN_WDT_PERIOD, MAX_WDT_PERIOD);
-	if (ptv & TIMER_EN) {
-		/* since the watchdog reset occurs when a fourth interrupt
-		 * is asserted before the first is processed, program the
-		 * timer period to one-fourth of the watchdog period */
-		ptv = (wdt->timeout * 1000000ul) / 4;
-		ptv |= (TIMER_EN | TIMER_PERIODIC);
-		writel(ptv, wdt->wdt_timer + TIMER_PTV);
-	}
-}
 
 static inline void tegra_wdt_ping(struct tegra_wdt *wdt)
 {

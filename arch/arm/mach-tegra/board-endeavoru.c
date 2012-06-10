@@ -116,9 +116,9 @@ static struct tegra_thermal_data thermal_data = {
 	.hysteresis_edp = 3000,
 #endif
 #ifdef CONFIG_TEGRA_THERMAL_SYSFS
-	.tc1 = 2,
+	.tc1 = 0, // 2
 	.tc2 = 1,
-	.passive_delay = 500,
+	.passive_delay = 2000, // 500
 #else
 	.hysteresis_throttle = 1000,
 #endif
@@ -136,11 +136,6 @@ static struct tegra_thermal_data thermal_data = {
 		.wakeup = _iswake,		\
 		.debounce_interval = 10,	\
 	}
-
-#define BOOT_DEBUG_LOG_ENTER(fn) \
-	printk(KERN_NOTICE "[BOOT_LOG] Entering %s\n", fn);
-#define BOOT_DEBUG_LOG_LEAVE(fn) \
-	printk(KERN_NOTICE "[BOOT_LOG] Leaving %s\n", fn);
 
 static int enrkey_wakeup(void)
 {
@@ -543,7 +538,6 @@ static __initdata struct tegra_clk_init_table enterprise_clk_init_table[] = {
 	{ "dam1",	"pll_a_out0",	0,		false},
 	{ "dam2",	"pll_a_out0",	0,		false},
 	{ "i2c1",	"pll_p",	3200000,	false},
-	{ "host1x",	"pll_c",	242000000,	true},
 	{ "i2c2",	"pll_p",	3200000,	false},
 	{ "i2c3",	"pll_p",	3200000,	false},
 	{ "i2c4",	"pll_p",	3200000,	false},
@@ -1033,6 +1027,16 @@ static void __init enterprise_spi_init(void)
 	platform_device_register(&tegra_spi_device2);
 	tegra_spi_device4.dev.platform_data = &cardhu_spi_pdata;
         platform_device_register(&tegra_spi_device4);
+}
+
+static void __init endeavoru_dtv_init(void)
+{
+	struct board_info BoardInfo;
+
+	tegra_get_board_info(&BoardInfo);
+
+	if (htc_get_pcbid_info() == PROJECT_PHASE_XA)
+		platform_device_register(&tegra_dtv_device);
 }
 
 static struct resource tegra_rtc_resources[] = {
@@ -1973,6 +1977,7 @@ static void __init tegra_endeavoru_init(void)
 #endif
 
 	enterprise_regulator_init();
+	endeavoru_dtv_init();
 	enterprise_sdhci_init();
 	headset_uart_init();
 

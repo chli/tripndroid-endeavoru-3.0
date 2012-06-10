@@ -842,6 +842,12 @@ static void tegra_suspend_check_pwr_stats(void)
 	return;
 }
 
+unsigned long long wake_reason_resume;
+EXPORT_SYMBOL(wake_reason_resume);
+
+int resume_from_deep_suspend;
+EXPORT_SYMBOL(resume_from_deep_suspend);
+
 int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 {
 	int err = 0;
@@ -931,6 +937,8 @@ int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 	local_fiq_enable();
 
 	tegra_common_resume();
+
+	resume_from_deep_suspend = 1;
 
 fail:
 	return err;

@@ -52,6 +52,7 @@ struct nvhost_device {
 	int		index;		/* Hardware channel number */
 	u32		num_resources;	/* Number of resources following */
 	struct resource	*resource;	/* Resources (IOMEM in particular) */
+	struct nvhost_master	*host;
 	struct resource	*reg_mem;
 	void __iomem	*aperture;	/* Iomem mapped to kernel */
 

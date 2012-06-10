@@ -44,6 +44,8 @@
 #include "mpu-i2c.h"
 
 #define MPUIRQ_NAME "mpuirq"
+#include "../../../arch/arm/mach-tegra/include/mach/board_htc.h"
+#define HTC_BOARD (9999)
 
 /* function which gets accel data and sends it to MPU */
 
@@ -64,6 +66,8 @@ static struct mpuirq_dev_data mpuirq_dev_data;
 static struct mpuirq_data mpuirq_data;
 static char *interface = MPUIRQ_NAME;
 
+static int gyro_htc_board_info ;
+
 static void mpu_accel_data_work_fcn(struct work_struct *work);
 
 static int mpuirq_open(struct inode *inode, struct file *file)
@@ -72,6 +76,9 @@ static int mpuirq_open(struct inode *inode, struct file *file)
 		"%s current->pid %d\n", __func__, current->pid);
 	mpuirq_dev_data.pid = current->pid;
 	file->private_data = &mpuirq_dev_data;
+	/* we could do some checking on the flags supplied by "open" */
+	/* i.e. O_NONBLOCK */
+	/* -> set some flag to disable interruptible_sleep_on in mpuirq_read */
 	return 0;
 }
 
@@ -89,9 +96,7 @@ static ssize_t mpuirq_read(struct file *file,
 	int len, err;
 	struct mpuirq_dev_data *p_mpuirq_dev_data = file->private_data;
 
-	if (!mpuirq_dev_data.data_ready &&
-		mpuirq_dev_data.timeout &&
-		(!(file->f_flags & O_NONBLOCK))) {
+	if (!mpuirq_dev_data.data_ready) {
 		wait_event_interruptible_timeout(mpuirq_wait,
 						 mpuirq_dev_data.
 						 data_ready,
@@ -154,6 +159,16 @@ static long mpuirq_ioctl(struct file *file,
 	case MPUIRQ_SET_FREQUENCY_DIVIDER:
 		mpuirq_dev_data.accel_divider = arg;
 		break;
+	case MPUIRQ_GET_DEBUG_FLAG:
+		if (copy_to_user((int *) arg, &mpu_debug_flag, sizeof(int)))
+			return -EFAULT;
+		break;
+	 case HTC_BOARD:
+		 gyro_htc_board_info = htc_get_pcbid_info();
+		 if (copy_to_user((int *) arg, &gyro_htc_board_info, sizeof(int)))
+			 return -EFAULT;
+		 break;
+
 	default:
 		retval = -EINVAL;
 	}

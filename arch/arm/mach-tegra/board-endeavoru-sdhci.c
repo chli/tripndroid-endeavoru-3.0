@@ -64,17 +64,6 @@ static struct wl12xx_platform_data enterprise_wlan_data __initdata = {
 };
 /* HTC_WIFI_END */
 
-static int emmc_suspend_gpiocfg(void)
-{
-	ENABLE_GPIO(SDMMC4_CLK, CC4, "SDMMC4_CLK", 0, 0, NORMAL);
-    return 0;
-}
-
-static void emmc_resume_gpiocfg(void)
-{
-	DISABLE_GPIO(SDMMC4_CLK, CC4, NORMAL);
-}
-
 // No uSD
 #if 0
 static struct resource sdhci_resource0[] = {
@@ -156,9 +145,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 	.is_8bit = 1,
 	.mmc_data = {
 		.built_in = 1,
-	},
-	.suspend_gpiocfg = emmc_suspend_gpiocfg,
-	.resume_gpiocfg = emmc_resume_gpiocfg,
+	}
 };
 
 // No uSD

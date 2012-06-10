@@ -28,6 +28,10 @@ ifdef CONFIG_MPU_SENSORS_BMA222
 mpu3050-objs += $(MLLITE_DIR)accel/bma222.o
 endif
 
+ifdef CONFIG_MPU_SENSORS_BMA250
+mpu3050-objs += $(MLLITE_DIR)accel/bma250.o
+endif
+
 ifdef CONFIG_MPU_SENSORS_KXSD9
 mpu3050-objs += $(MLLITE_DIR)accel/kxsd9.o
 endif
@@ -67,10 +71,6 @@ ifdef CONFIG_MPU_SENSORS_AMI30X
 mpu3050-objs += $(MLLITE_DIR)compass/ami30x.o
 endif
 
-ifdef CONFIG_MPU_SENSORS_AMI306
-mpu3050-objs += $(MLLITE_DIR)compass/ami306.o
-endif
-
 ifdef CONFIG_MPU_SENSORS_HMC5883
 mpu3050-objs += $(MLLITE_DIR)compass/hmc5883.o
 endif
@@ -85,10 +85,6 @@ endif
 
 ifdef CONFIG_MPU_SENSORS_YAS529
 mpu3050-objs += $(MLLITE_DIR)compass/yas529-kernel.o
-endif
-
-ifdef CONFIG_MPU_SENSORS_YAS530
-mpu3050-objs += $(MLLITE_DIR)compass/yas530.o
 endif
 
 ifdef CONFIG_MPU_SENSORS_HSCDTD002B
@@ -129,4 +125,8 @@ EXTRA_CFLAGS += -DM_HW
 endif
 
 obj-$(CONFIG_MPU_SENSORS_TIMERIRQ)+= timerirq.o
+
+ifdef CONFIG_MPU_SENSORS_DEBUG
+EXTRA_CFLAGS += -DDEBUG
+endif
 

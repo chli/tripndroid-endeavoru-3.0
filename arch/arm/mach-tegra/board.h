@@ -25,39 +25,8 @@
 #include <linux/types.h>
 #include <linux/power_supply.h>
 
-#define ADD_FIXED_VOLTAGE_REG(_name)	(&_name##_fixed_voltage_device)
+#define NVDUMPER_RESERVED_LEN 4096
 
-/* Macro for defining fixed voltage regulator */
-#define FIXED_VOLTAGE_REG_INIT(_id, _name, _microvolts, _gpio,		\
-		_startup_delay, _enable_high, _enabled_at_boot,		\
-		_valid_ops_mask, _always_on)				\
-	static struct regulator_init_data _name##_initdata = {		\
-		.consumer_supplies = _name##_consumer_supply,		\
-		.num_consumer_supplies =				\
-				ARRAY_SIZE(_name##_consumer_supply),	\
-		.constraints = {					\
-			.valid_ops_mask = _valid_ops_mask ,		\
-			.always_on = _always_on,			\
-		},							\
-	};								\
-	static struct fixed_voltage_config _name##_config = {		\
-		.supply_name		= #_name,			\
-		.microvolts		= _microvolts,			\
-		.gpio			= _gpio,			\
-		.startup_delay		= _startup_delay,		\
-		.enable_high		= _enable_high,			\
-		.enabled_at_boot	= _enabled_at_boot,		\
-		.init_data		= &_name##_initdata,		\
-	};								\
-	static struct platform_device _name##_fixed_voltage_device = {	\
-		.name			= "reg-fixed-voltage",		\
-		.id			= _id,				\
-		.dev			= {				\
-			.platform_data	= &_name##_config,		\
-		},							\
-	}
-
-#if defined(CONFIG_TEGRA_NVMAP)
 #define NVMAP_HEAP_CARVEOUT_IRAM_INIT	\
 	{	.name		= "iram",					\
 		.usage_mask	= NVMAP_HEAP_CARVEOUT_IRAM,			\
@@ -65,7 +34,6 @@
 		.size		= TEGRA_IRAM_SIZE - TEGRA_RESET_HANDLER_SIZE,	\
 		.buddy_size	= 0, /* no buddy allocation for IRAM */		\
 	}
-#endif
 
 struct memory_accessor;
 
@@ -109,8 +77,10 @@ extern unsigned long tegra_vpr_start;
 extern unsigned long tegra_vpr_size;
 extern unsigned long tegra_lp0_vec_start;
 extern unsigned long tegra_lp0_vec_size;
+extern unsigned long nvdumper_reserved;
 extern bool tegra_lp0_vec_relocate;
 extern unsigned long tegra_grhost_aperture;
+extern unsigned long g_panel_id;
 
 extern struct sys_timer tegra_timer;
 

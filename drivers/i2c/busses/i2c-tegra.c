@@ -699,6 +699,15 @@ static int tegra_i2c_xfer_msg(struct tegra_i2c_bus *i2c_bus,
 	return -EIO;
 }
 
+bool tegra_i2c_is_ready(struct i2c_adapter *adap)
+{
+	struct tegra_i2c_bus *i2c_bus = i2c_get_adapdata(adap);
+	struct tegra_i2c_dev *i2c_dev = i2c_bus->dev;
+
+	return !(i2c_dev->is_suspended);
+}
+EXPORT_SYMBOL(tegra_i2c_is_ready);
+
 static int tegra_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[],
 	int num)
 {

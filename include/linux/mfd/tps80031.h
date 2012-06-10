@@ -165,6 +165,10 @@ struct tps80031_platform_data {
 	struct tps80031_clk32k_init_data *clk32k_init_data;
 	int clk32k_init_data_size;
 	bool use_power_off;
+#ifdef CONFIG_PM
+	void (*suspend_work)(void);
+	void (*resume_work)(void);
+#endif
 };
 
 struct tps80031_bg_platform_data {
@@ -193,6 +197,10 @@ extern int tps80031_force_update(struct device *dev, int sid, int reg,
 extern int tps80031_ext_power_req_config(struct device *dev,
 		unsigned long ext_ctrl_flag, int preq_bit,
 		int state_reg_add, int trans_reg_add);
+
+extern int tps80031_power_off(void);
+
+extern int tps80031_power_off_or_reboot(void);
 
 extern unsigned long tps80031_get_chip_info(struct device *dev);
 

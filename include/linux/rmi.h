@@ -222,8 +222,7 @@ struct rmi_f19_button_map {
 struct rmi_device_platform_data_spi {
 	int block_delay_us;
 	int split_read_block_delay_us;
-	int read_delay_us;
-	int write_delay_us;
+	int byte_delay_us;
 	int split_read_byte_delay_us;
 	int pre_delay_us;
 	int post_delay_us;
@@ -235,11 +234,12 @@ struct rmi_device_platform_data_spi {
 struct rmi_device_platform_data {
 	char *driver_name;
 
+	int irq_no;
 	int irq;
 	enum rmi_irq_polarity irq_polarity;
-	int (*gpio_config)(void *gpio_data, bool configure);
+	int (*gpio_config)(void);
 
-	struct rmi_device_platform_data_spi spi_data;
+	struct rmi_device_platform_data_spi spi_v2;
 
 	/* function handler pdata */
 	struct rmi_f11_2d_ctrl *f11_ctrl;
@@ -348,7 +348,7 @@ struct rmi_function_container {
 		container_of(d, struct rmi_function_device, dev);
 
 
-#ifdef CONFIG_RMI4_DEV
+//#ifdef CONFIG_RMI4_DEV
 
 #define RMI_CHAR_DEV_TMPBUF_SZ 128
 #define RMI_REG_ADDR_PAGE_SELECT 0xFF
@@ -369,10 +369,10 @@ struct rmi_char_dev {
 	int ref_count;
 };
 
-int rmi_char_dev_register(struct rmi_phys_device *phys);
+int rmi_char_dev_register(void);
 void rmi_char_dev_unregister(struct rmi_phys_device *phys);
 
-#endif /*CONFIG_RMI4_DEV*/
+//#endif /*CONFIG_RMI4_DEV*/
 
 
 
@@ -433,6 +433,7 @@ struct rmi_phys_info {
 	long rx_bytes;
 	long rx_errs;
 	long attn_count;
+	long attn;
 };
 
 /**
@@ -467,11 +468,11 @@ struct rmi_phys_device {
 
 	struct rmi_phys_info info;
 
-#ifdef CONFIG_RMI4_DEV
+//#ifdef CONFIG_RMI4_DEV
 	/* pointer to attention char device and char device */
 	struct rmi_char_dev *char_dev;
 	struct class *rmi_char_device_class;
-#endif /*CONFIG_RMI4_DEV*/
+//#endif /*CONFIG_RMI4_DEV*/
 };
 
 /**
@@ -497,6 +498,9 @@ struct rmi_device {
 };
 #define to_rmi_device(d) container_of(d, struct rmi_device, dev);
 #define to_rmi_platform_data(d) ((d)->phys->dev->platform_data);
+
+int i2c_rmi_read(uint16_t addr, uint8_t *data, uint16_t length);
+int i2c_rmi_write(uint16_t addr, uint8_t *data, uint16_t length);
 
 static inline void rmi_set_driverdata(struct rmi_device *d, void *data)
 {

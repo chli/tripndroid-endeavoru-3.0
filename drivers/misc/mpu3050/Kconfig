@@ -1,10 +1,6 @@
 
 menu "Motion Sensors Support"
 
-choice
-    tristate "Motion Processing Unit"
-    depends on I2C
-    optional
 
 config MPU_SENSORS_MPU3050
     tristate "MPU3050"
@@ -13,26 +9,24 @@ config MPU_SENSORS_MPU3050
       This driver can also be built as a module.  If so, the module
       will be called mpu3050.
 
-config MPU_SENSORS_MPU6000
-    tristate "MPU6000"
-    help
-      If you say yes here you get support for the MPU6000 Gyroscope driver
-      This driver can also be built as a module.  If so, the module
-      will be called mpu6000.
-
-endchoice
-
 choice
     prompt "Accelerometer Type"
     depends on MPU_SENSORS_MPU3050
-    optional
+    default MPU_SENSORS_BMA250
 
 config MPU_SENSORS_KXTF9
     bool "Kionix KXTF9"
     help
       This enables support for the Kionix KXFT9 accelerometer
 
+config MPU_SENSORS_BMA250
+    bool "Bosch BMA250"
+    depends on MPU_SENSORS_MPU3050
+    help
+      This enables support for the Bosch BMA250 accelerometer
+
 endchoice
+
 
 choice
     prompt "Compass Type"

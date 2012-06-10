@@ -73,6 +73,9 @@
 #define REGEN2_BASE_ADD		0xB1
 #define SYSEN_BASE_ADD		0xB4
 
+/* VRTC control register */
+#define TPS80031_BBSPOR_CFG	0xE6
+
 /* device control registers */
 #define TPS80031_PHOENIX_DEV_ON	0x25
 #define DEVOFF	1
@@ -100,6 +103,8 @@
 #define TPS80031_PREQ3_RES_ASS_A	0xDD
 #define TPS80031_PHOENIX_MSK_TRANSITION 0x20
 
+#define CONTROLLER_STAT1	0xE3
+#define VBUS_DET		(1U << 2)
 
 static u8 pmc_ext_control_base[] = {
 	REGEN1_BASE_ADD,
@@ -491,6 +496,37 @@ unsigned long tps80031_get_chip_info(struct device *dev)
 }
 EXPORT_SYMBOL_GPL(tps80031_get_chip_info);
 
+// TripNRaVeR: we need this stuff for Endeavoru
+#include <mach/restart.h>
+int (*tps80031_is_cable_in)(void) = NULL;
+EXPORT_SYMBOL_GPL(tps80031_is_cable_in);
+
+static struct tps80031 *tps80031_dev;
+int tps80031_power_off_or_reboot(void)
+{
+	uint8_t ctrl0;
+	struct tps80031_client *tps = &tps80031_dev->tps_clients[SLAVE_ID2];
+	int ret = 0;
+	ret = __tps80031_read(tps->client, CONTROLLER_STAT1, &ctrl0);
+	if (ret < 0) {
+		pr_err("%s:read register CONTROLLER_STAT1 fail\n",__func__);
+		return ret;
+	}
+
+	if (!(ctrl0 & VBUS_DET)) {
+		printk("VBUS not detected, shutdown");
+		ret = tps80031_power_off();
+	} else {
+		printk("VBUS detected, do offmode charging");
+		arm_pm_restart('h', "offmode");
+	}
+
+	return ret;
+}
+int tps80031_vbus_on = 0;
+EXPORT_SYMBOL_GPL(tps80031_vbus_on);
+// TripNRaVeR: end
+
 int tps80031_get_pmu_version(struct device *dev)
 {
 	struct tps80031 *tps80031 = dev_get_drvdata(dev);
@@ -498,16 +534,32 @@ int tps80031_get_pmu_version(struct device *dev)
 }
 EXPORT_SYMBOL_GPL(tps80031_get_pmu_version);
 
-static struct tps80031 *tps80031_dev;
-static void tps80031_power_off(void)
+// TripNRaVeR: we need this stuff (editted) for Endeavoru
+int tps80031_power_off(void)
 {
 	struct tps80031_client *tps = &tps80031_dev->tps_clients[SLAVE_ID1];
+	int ret = 0;
+	u8 reg_value;
 
 	if (!tps->client)
-		return;
+		return -EINVAL;
+	ret = __tps80031_read(tps->client, TPS80031_BBSPOR_CFG, &reg_value);
+	if (ret)
+		goto out;
+
+	/* Turn off VRTC to save about 0.030mA */
+	ret = __tps80031_write(tps->client, TPS80031_BBSPOR_CFG,
+				0x12);
+	if (ret)
+		goto out;
+
 	dev_info(&tps->client->dev, "switching off PMU\n");
-	__tps80031_write(tps->client, TPS80031_PHOENIX_DEV_ON, DEVOFF);
+
+	return __tps80031_write(tps->client, TPS80031_PHOENIX_DEV_ON, DEVOFF);
+out:
+	return ret;
 }
+// TripNRaVeR: end
 
 static void tps80031_init_ext_control(struct tps80031 *tps80031,
 			struct tps80031_platform_data *pdata) {

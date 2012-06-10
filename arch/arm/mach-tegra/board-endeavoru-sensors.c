@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-endeavoru-sensors.c
  *
- * Copyright (c) 2011, NVIDIA CORPORATION, All rights reserved.
+ * Copyright (c) 2011-2012, NVIDIA CORPORATION, All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,6 +35,7 @@
 #include <linux/delay.h>
 #include <linux/i2c/pca954x.h>
 #include <linux/err.h>
+#include <linux/mpu.h>
 #include <linux/nct1008.h>
 #include <linux/err.h>
 #include <linux/mpu.h>
@@ -43,34 +44,32 @@
 #include <linux/slab.h>
 #include <linux/platform_device.h>
 #include <linux/tps65200.h>
-#include <linux/akm8975.h>
-#include <linux/bma250.h>
-#include <linux/ewtzmu2.h>
+#include <mach/htc_battery_tps80032.h>
 #include <linux/pn544.h>
-#include <linux/isl29028.h>
-#include <linux/cm3628.h>
-#include <linux/cm3629.h>
-
+#include <mach/gpio.h>
 #include <media/ar0832_main.h>
 #include <media/s5k3h2y.h>
 #include <media/s5k6a1gx03.h>
 #include <media/ad5823.h>
 #include <media/tps61050.h>
 #include <media/ov9726.h>
-
-#include <mach/board_htc.h>
 #include <mach/edp.h>
 #include <mach/thermal.h>
-#include <mach/htc_battery_tps80032.h>
-#include <mach/gpio.h>
-
 #include "cpu-tegra.h"
 #include "gpio-names.h"
 #include "board-endeavoru.h"
 #include "board.h"
+#include <linux/akm8975.h>
+#include <linux/bma250.h>
+#include <linux/ewtzmu2.h>
+#include <mach/board_htc.h>
+#include <linux/isl29028.h>
+#include <linux/cm3628.h>
+#include <linux/cm3629.h>
 
 #define RAWCHIP 1
 #include <media/rawchip/Yushan_API.h>
+//#define CAMERA_REGULATOR
 
 static struct regulator *v_sdmmc_2v85_en ;
 static struct regulator *v_srio_1v8_en ;

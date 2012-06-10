@@ -78,6 +78,36 @@ struct tegra_ehci_hcd {
 	bool bus_suspended_fail;
 };
 
+/* 84717-1 patch */
+struct usb_hcd *s_hsic_hcd;
+void usb_register_dump(void)
+{
+	struct usb_hcd  *hcd;
+	struct ehci_hcd *ehci;
+	int i = 0;
+
+	if(s_hsic_hcd) {
+		hcd = s_hsic_hcd;
+		ehci = hcd_to_ehci(hcd);
+		pr_info("\n***** USB Register Dump Start********* \n");
+		for( i = 0; i < 0x200; i = i+16) {
+		pr_info("ADDRESS:%p 0x%08x 0x%08x 0x%08x 0x%08x\n", (hcd->regs + i),
+			readl(hcd->regs + i), readl(hcd->regs + i + 4),
+			readl(hcd->regs + i + 8), readl(hcd->regs + i + 12));
+		}
+		pr_info("USB2_IF_USB_SUSP_CTRL_0: 0x%08x\n", readl(hcd->regs + 0x400));
+		pr_info("HSIC Registers\n");
+		for( i = 0xc00; i < 0xc40; i = i+16) {
+		pr_info("ADDRESS:%p 0x%08x 0x%08x 0x%08x 0x%08x\n", (hcd->regs + i),
+			readl(hcd->regs + i), readl(hcd->regs + i + 4),
+			readl(hcd->regs + i + 8), readl(hcd->regs + i + 12));
+		}
+		pr_info("\n***** USB Register Dump END********* \n");
+	}
+}
+EXPORT_SYMBOL_GPL(usb_register_dump);
+/* 84717-1 patch */
+
 static void tegra_ehci_power_up(struct usb_hcd *hcd, bool is_dpd)
 {
 	struct tegra_ehci_hcd *tegra = dev_get_drvdata(hcd->self.controller);
@@ -564,7 +594,7 @@ static int tegra_usb_suspend(struct usb_hcd *hcd, bool is_dpd)
 static int tegra_usb_resume(struct usb_hcd *hcd, bool is_dpd)
 {
 	struct tegra_ehci_hcd *tegra = dev_get_drvdata(hcd->self.controller);
-	struct usb_device *udev = hcd->self.root_hub;
+
 	struct ehci_hcd	*ehci = hcd_to_ehci(hcd);
 	struct ehci_regs __iomem *hw = ehci->regs;
 	unsigned long val;

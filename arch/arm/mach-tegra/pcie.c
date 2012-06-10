@@ -330,8 +330,6 @@ struct tegra_pcie_info {
 #define pmc_readl(reg) \
 	__raw_readl((u32)reg_pmc_base + (reg))
 
-static void __iomem *reg_pmc_base = IO_ADDRESS(TEGRA_PMC_BASE);
-
 static struct tegra_pcie_info tegra_pcie = {
 	.res_mmio = {
 		.name = "PCI IO",
@@ -602,7 +600,7 @@ static struct pci_bus *tegra_pcie_scan_bus(int nr,
 	return pci_scan_bus(sys->busnr, &tegra_pcie_ops, sys);
 }
 
-static struct hw_pci tegra_pcie_hw = {
+static struct hw_pci tegra_pcie_hw __refdata = {
 	.nr_controllers	= MAX_PCIE_SUPPORTED_PORTS,
 	.preinit	= tegra_pcie_preinit,
 	.setup		= tegra_pcie_setup,

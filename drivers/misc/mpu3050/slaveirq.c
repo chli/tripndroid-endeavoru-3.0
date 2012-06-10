@@ -89,9 +89,7 @@ static ssize_t slaveirq_read(struct file *file,
 	struct slaveirq_dev_data *data =
 		container_of(file->private_data, struct slaveirq_dev_data, dev);
 
-	if (!data->data_ready &&
-		data->timeout &&
-		!(file->f_flags & O_NONBLOCK)) {
+	if (!data->data_ready) {
 		wait_event_interruptible_timeout(data->slaveirq_wait,
 						 data->data_ready,
 						 data->timeout);
@@ -114,8 +112,7 @@ static ssize_t slaveirq_read(struct file *file,
 	return len;
 }
 
-static unsigned int slaveirq_poll(struct file *file,
-				struct poll_table_struct *poll)
+unsigned int slaveirq_poll(struct file *file, struct poll_table_struct *poll)
 {
 	int mask = 0;
 	struct slaveirq_dev_data *data =
@@ -171,6 +168,7 @@ static irqreturn_t slaveirq_handler(int irq, void *dev_id)
 	data->data.interruptcount++;
 
 	/* wake up (unblock) for reading data from userspace */
+	/* and ignore first interrupt generated in module init */
 	data->data_ready = 1;
 
 	do_gettimeofday(&irqtime);

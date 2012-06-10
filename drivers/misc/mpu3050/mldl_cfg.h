@@ -34,6 +34,7 @@
 
 #include "mlsl.h"
 #include "mpu.h"
+#include "mpu3050.h"
 
 /* --------------------- */
 /* -    Defines.       - */

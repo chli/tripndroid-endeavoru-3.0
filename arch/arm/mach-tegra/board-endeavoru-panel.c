@@ -366,10 +366,10 @@ static int bridge_reset(void)
 
 	/*LCD_RST pull low*/
 	gpio_set_value(LCM_RST, 0);
-	msleep(5);
+	msleep(10);
 	/*Turn on LCMIO_1V8_EN*/
 	regulator_enable(v_lcmio_1v8);
-	msleep(1);
+	msleep(2);
 	/*Turn on LCMIO_3V3_EN*/
 	regulator_enable(v_lcm_3v3);
 	switch (g_panel_id) {
@@ -409,11 +409,11 @@ static int ic_reset(void)
 		goto success;
 		return 0;
 	}
-	msleep(2);
+	msleep(5);
 	gpio_set_value(LCM_RST, 0);
-	msleep(1);
+	msleep(8);
 	gpio_set_value(LCM_RST, 1);
-	msleep(25);
+	msleep(35);
 
 success:
 	DISP_INFO_OUT();
@@ -431,7 +431,7 @@ static int enterprise_dsi_panel_disable(void)
 
 	DISP_INFO_IN();
 	gpio_set_value(LCM_RST, 0);
-	msleep(12);
+	msleep(15);
 
 	REGULATOR_GET(v_lcm_3v3, "v_lcm_3v3");
 	regulator_disable(v_lcm_3v3);
@@ -2538,7 +2538,21 @@ static struct tegra_dsi_cmd dsi_suspend_cmd[] = {
 struct tegra_dsi_out enterprise_dsi = {
 	.n_data_lanes = 2,
 	.pixel_format = TEGRA_DSI_PIXEL_FORMAT_24BIT_P,
+#if(DC_CTRL_MODE & TEGRA_DC_OUT_ONE_SHOT_MODE)
+	/* For one-shot mode, actual refresh rate is decided by the
+	 * frequency of TE signal. Although the frequency of TE is
+	 * expected running at rated_refresh_rate (typically 60Hz),
+	 * it may vary. Mismatch between freq of DC and TE signal
+	 * would cause frame drop. We increase refresh_rate to the
+	 * value larger than maximum TE frequency to avoid missing
+	 * any TE signal. The value of refresh_rate is also used to
+	 * calculate the pixel clock.
+	 */
 	.refresh_rate = 66,
+	.rated_refresh_rate = 60,
+#else
+	.refresh_rate = 60,
+#endif
 
 	.virtual_channel = TEGRA_DSI_VIRTUAL_CHANNEL_0,
 
@@ -2547,6 +2561,7 @@ struct tegra_dsi_out enterprise_dsi = {
 
 	.panel_reset = DSI_PANEL_RESET,
 	.power_saving_suspend = true,
+
 	.n_init_cmd = ARRAY_SIZE(dsi_init_sharp_nt_c2_cmd),
 	.dsi_init_cmd = dsi_init_sharp_nt_c2_cmd,
 
@@ -2558,17 +2573,12 @@ struct tegra_dsi_out enterprise_dsi = {
 
 	.n_suspend_cmd = ARRAY_SIZE(dsi_suspend_cmd),
 	.dsi_suspend_cmd = dsi_suspend_cmd,
-	.video_clock_mode = TEGRA_DSI_VIDEO_CLOCK_TX_ONLY,
-	.video_data_type = TEGRA_DSI_VIDEO_TYPE_COMMAND_MODE,
 
+	.video_data_type = TEGRA_DSI_VIDEO_TYPE_COMMAND_MODE,
 	.lp_cmd_mode_freq_khz = 20000,
 
 	/* TODO: Get the vender recommended freq */
 	.lp_read_cmd_mode_freq_khz = 200000,
-
-	/*phy timing tuning by hardware*/
-	.phy_timing.t_hstrail_ns = 8,
-	.phy_timing.t_clkzero_ns = 27,
 };
 
 static struct tegra_stereo_out enterprise_stereo = {
@@ -2579,16 +2589,16 @@ static struct tegra_stereo_out enterprise_stereo = {
 #ifdef CONFIG_TEGRA_DC
 static struct tegra_dc_mode enterprise_dsi_modes[] = {
 	{
-		.pclk = 20000000,
+		.pclk = 10000000, //2xxxx
 		.h_ref_to_sync = 4,
 		.v_ref_to_sync = 1,
 		.h_sync_width = 16,
 		.v_sync_width = 1,
-		.h_back_porch = 29,
+		.h_back_porch = 29, //29
 		.v_back_porch = 1,
 		.h_active = 720,
 		.v_active = 1280,
-		.h_front_porch = 55,
+		.h_front_porch = 55, //55
 		.v_front_porch = 2,
 	},
 };
@@ -2632,9 +2642,7 @@ static struct tegra_dc_out enterprise_disp1_out = {
 	/*TODO let power-on sequence wait until dsi hardware init*/
 	.bridge_reset = bridge_reset,
 	.ic_reset = ic_reset,
-
-	.power_wakeup = POWER_WAKEUP_ENR,
-	.performance_tuning = 1,
+	
 };
 static struct tegra_dc_platform_data enterprise_disp1_pdata = {
 	.flags		= TEGRA_DC_FLAG_ENABLED,

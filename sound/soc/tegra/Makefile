@@ -39,3 +39,8 @@ obj-$(CONFIG_SND_SOC_TEGRA_TLV320AIC326X) += snd-soc-tegra-aic326x.o
 obj-$(CONFIG_SND_SOC_TEGRA_RT5640) += snd-soc-tegra-rt5640.o
 obj-$(CONFIG_SND_SOC_TEGRA_MAX98095) += snd-soc-tegra-max98095.o
 obj-$(CONFIG_SND_SOC_TEGRA_P1852) += snd-soc-tegra-p1852.o
+
+ifeq ($(CONFIG_SND_SOC_TLV320AIC3008),y)
+obj-$(CONFIG_SND_SOC_TLV320AIC3008)    += tegra_aic3008.o
+obj-$(CONFIG_TEGRA_ES305)       += es305.o
+endif

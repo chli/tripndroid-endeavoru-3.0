@@ -43,4 +43,7 @@ obj-$(CONFIG_CHARGER_GPIO)	+= gpio-charger.o
 obj-$(CONFIG_CHARGER_MAX8997)	+= max8997_charger.o
 obj-$(CONFIG_CHARGER_MAX8998)	+= max8998_charger.o
 obj-$(CONFIG_MAX8907C_CHARGER)	+= max8907c-charger.o
+obj-$(CONFIG_CHARGER_TPS65200)	+= tps65200.o
+obj-$(CONFIG_ADC_TPS80032)	+= tps80032_adc.o
+obj-$(CONFIG_VSYS_ALARM_TPS80032)	+= tps80032_vsys_alarm.o
 obj-$(CONFIG_TEGRA_BPC_MGMT)	+= tegra_bpc_mgmt.o

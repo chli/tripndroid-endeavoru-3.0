@@ -37,12 +37,14 @@ struct tegra_ehci_platform_data {
 	int hotplug;
 	int default_enable;
 	void *phy_config;
+	int enable_ehci_power_control;
 	enum tegra_usb_phy_type phy_type;
 };
 
 struct tegra_otg_platform_data {
 	struct platform_device *ehci_device;
 	struct tegra_ehci_platform_data *ehci_pdata;
+	int rcv_host_en;
 };
 
 #endif /* _TEGRA_USB_H_ */

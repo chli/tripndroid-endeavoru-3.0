@@ -80,9 +80,7 @@ static int tegra3_get_core_floor_mv(int cpu_mv)
 	if (cpu_mv < 1000)
 		return 1100;
 	if ((tegra_cpu_speedo_id() < 2) ||
-	    (tegra_cpu_speedo_id() == 4) ||
-	    (tegra_cpu_speedo_id() == 7) ||
-	    (tegra_cpu_speedo_id() == 8))
+	    (tegra_cpu_speedo_id() == 4))
 		return 1200;
 	if (cpu_mv < 1100)
 		return 1200;
@@ -409,7 +407,7 @@ static bool __init is_pllm_dvfs(struct clk *c, struct dvfs *d)
 	/* Do not apply common PLLM dvfs table on T30, T33, T37 rev A02+ and
 	   do not apply restricted PLLM dvfs table for other SKUs/revs */
 	int cpu = tegra_cpu_speedo_id();
-	if (((cpu == 2) || (cpu == 5) || (cpu == 13)) ==
+	if (((tegra_cpu_speedo_id() == 2) || (tegra_cpu_speedo_id() == 5)) ==
 	    (d->speedo_id == -1))
 		return false;
 #endif
@@ -891,7 +889,8 @@ void tegra_dvfs_core_cap_level_set(int level)
 
 static int __init init_core_cap_one(struct clk *c, unsigned long *freqs)
 {
-	int i, v, next_v;
+	int i, v;
+	int next_v = 0;
 	unsigned long rate, next_rate = 0;
 
 	for (i = 0; i < ARRAY_SIZE(core_millivolts); i++) {

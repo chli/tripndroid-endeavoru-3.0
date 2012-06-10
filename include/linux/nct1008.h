@@ -44,11 +44,14 @@ struct nct1008_platform_data {
 	u8 thermal_zones_sz;
 	void (*alarm_fn)(bool raised);
 	void (*probe_callback)(struct nct1008_data *);
+	char *reg_name;
 };
 
 struct nct1008_data {
 	struct workqueue_struct *workqueue;
 	struct work_struct work;
+	struct delayed_work polling_work;
+	struct delayed_work read_temp_work;
 	struct i2c_client *client;
 	struct nct1008_platform_data plat_data;
 	struct mutex mutex;
@@ -66,6 +69,7 @@ struct nct1008_data {
 	void *alert_data;
 };
 
+void nct1008_read_temp_for_key(int read_temp);
 #ifdef CONFIG_SENSORS_NCT1008
 int nct1008_thermal_get_temp(struct nct1008_data *data, long *temp);
 int nct1008_thermal_get_temp_low(struct nct1008_data *data, long *temp);

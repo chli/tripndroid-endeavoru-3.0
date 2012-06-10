@@ -40,6 +40,9 @@
 /* vdd_cpu voltage follower */
 #define BOARD_SKU_VF_BIT	0x0400
 
+/* SKU Information */
+#define BOARD_SKU_B11	0xb11
+
 int enterprise_charge_init(void);
 int enterprise_sdhci_init(void);
 int endeavoru_pinmux_init(void);
@@ -61,8 +64,6 @@ void enterprise_bpc_mgmt_init(void);
 #define MPU_GYRO_ADDR		0x68
 #define MPU_GYRO_BUS_NUM	0
 #define MPU_GYRO_ORIENTATION	{ -1, 0, 0, 0, -1, 0, 0, 0, 1 }
-// TripNRaVeR: i could be wrong but shouldnt this be bma250?
-// #define MPU_ACCEL_NAME		"bma250"
 #define MPU_ACCEL_NAME		"kxtf9"
 #define MPU_ACCEL_IRQ_GPIO	0 /* DISABLE ACCELIRQ:  TEGRA_GPIO_PJ2 */
 #define MPU_ACCEL_ADDR		0x0F
@@ -187,7 +188,7 @@ void enterprise_bpc_mgmt_init(void);
 #define BT_GPIO_CTS_IRQ	TEGRA_GPIO_PO5
 #endif
 
-#define TDIODE_OFFSET	(9000)	/* in millicelsius */
+#define TDIODE_OFFSET	(10000)	/* in millicelsius */
 
 /* Battery Peak Current Management */
 #define TEGRA_BPC_TRIGGER		TEGRA_GPIO_PR3

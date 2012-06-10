@@ -19,6 +19,13 @@
 
 #include <linux/pm.h>
 #include <linux/suspend.h>
+#include <linux/completion.h>
+
+#include "gpio-names.h"
+
+#define VENDOR_ID         0x1519
+#define PRODUCT_ID        0x0020
+#define BB_XMM_OEM1
 
 #define VENDOR_ID         0x1519
 #define PRODUCT_ID        0x0020
