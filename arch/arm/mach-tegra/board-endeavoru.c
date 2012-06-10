@@ -464,25 +464,6 @@ int plat_kim_resume(struct platform_device *pdev)
         return 0;
 }
 
-static struct wake_lock st_wk_lock;
-
-/* Release the wakelock when chip is asleep */
-static int plat_chip_asleep(void)
-{
-	pr_info("plat_chip_asleep\n");
-	wake_unlock(&st_wk_lock);
-	return 1;
-}
-
-/* Aquire the wakelock when chip is awake */
-static int plat_chip_awake(void)
-{
-
-	pr_info("plat_chip_awake\n");
-	wake_lock(&st_wk_lock);
-	return 1;
-}
-
 struct ti_st_plat_data wilink_pdata = {
                 .nshutdown_gpio = 160,
                 .dev_name = "/dev/ttyHS2",
@@ -491,10 +472,6 @@ struct ti_st_plat_data wilink_pdata = {
                 /*.baud_rate = 115200,*/
                 .suspend = plat_kim_suspend,
                 .resume = plat_kim_resume,
-		.chip_asleep = plat_chip_asleep,
-		.chip_awake  = plat_chip_awake,
-		.chip_enable = plat_chip_awake,
-		.chip_disable = plat_chip_asleep,
 };
 
 static struct platform_device btwilink_device = {
@@ -510,8 +487,6 @@ static struct platform_device wl128x_device = {
 
 static noinline void __init enterprise_bt_wl128x(void)
 {
-	wake_lock_init(&st_wk_lock, WAKE_LOCK_SUSPEND, "st_wake_lock");
-
         platform_device_register(&wl128x_device);
 	platform_device_register(&btwilink_device);
         tegra_gpio_enable(TEGRA_GPIO_PU0);

@@ -452,10 +452,6 @@ struct ti_st_plat_data {
 	unsigned long baud_rate;
 	int (*suspend)(struct platform_device *, pm_message_t);
 	int (*resume)(struct platform_device *);
-	int (*chip_enable) (void);
-	int (*chip_disable) (void);
-	int (*chip_asleep) (void);
-	int (*chip_awake) (void);
 };
 
 #endif /* TI_WILINK_ST_H */

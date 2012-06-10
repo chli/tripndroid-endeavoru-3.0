@@ -34,9 +34,6 @@
 #define N_TI_WL		22	/* for TI's WL BT, FM, GPS combo chips */
 #define N_TRACESINK	23	/* Trace data routing for MIPI P1149.7 */
 #define N_TRACEROUTER	24	/* Trace data routing for MIPI P1149.7 */
-#define N_TS2710_USB    25      /* 3GPP TS 27.010 MUX over USB */
-#define N_TS2710	26      /* 3GPP TS 27.010 MUX over UART */
-#define N_IP_OVER_TTY   27      /* IP over TTY network driver */
 
 #ifdef __KERNEL__
 #include <linux/fs.h>
